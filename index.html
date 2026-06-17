@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>迫りくるクイズ</title>
+  <style>
+    * {
+      margin: 0; padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #0d0d1a;
+      font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', 'Yu Gothic', sans-serif;
+      color: white;
+      touch-action: manipulation;
+    }
+
+    /* ===== SCREENS ===== */
+    .screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .screen.hidden { display: none; }
+
+    /* ===== START ===== */
+    #start-screen {
+      background: radial-gradient(ellipse at 50% 40%, #1e1e4a 0%, #0d0d1a 65%);
+      gap: 14px;
+    }
+
+    .game-title {
+      font-size: clamp(2rem, 7vw, 3rem);
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      background: linear-gradient(135deg, #a78bfa 30%, #60a5fa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-align: center;
+    }
+
+    .game-sub {
+      color: rgba(255,255,255,0.45);
+      font-size: 0.95rem;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .btn-primary {
+      margin-top: 24px;
+      padding: 16px 52px;
+      font-size: 1.25rem;
+      font-weight: bold;
+      font-family: inherit;
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      letter-spacing: 0.1em;
+      box-shadow: 0 6px 28px rgba(124,58,237,0.5);
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .btn-primary:active { transform: scale(0.96); box-shadow: 0 3px 14px rgba(124,58,237,0.4); }
+
+    /* ===== GAME SCREEN ===== */
+    #game-screen {
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: stretch;
+    }
+
+    /* --- Question area (top 50%) --- */
+    .question-area {
+      flex: 0 0 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: linear-gradient(180deg, #0f1a3d 0%, #131c38 100%);
+      overflow: hidden;
+      transition: box-shadow 0.4s;
+    }
+    .question-area.danger {
+      box-shadow: inset 0 0 60px rgba(239,68,68,0.25);
+      animation: dangerPulse 0.6s ease-in-out infinite;
+    }
+    @keyframes dangerPulse {
+      0%,100% { box-shadow: inset 0 0 40px rgba(239,68,68,0.15); }
+      50%      { box-shadow: inset 0 0 70px rgba(239,68,68,0.35); }
+    }
+
+    /* Timer label — above question text, hidden until ≤5s */
+    .timer-label {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: clamp(2.2rem, 9vw, 3.8rem);
+      font-weight: 900;
+      color: #ff4444;
+      text-shadow: 0 0 25px rgba(255,68,68,0.9), 0 0 55px rgba(255,68,68,0.4);
+      opacity: 0;
+      transition: opacity 0.35s;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .timer-label.show {
+      opacity: 1;
+      animation: timerBeat 0.55s ease-in-out infinite;
+    }
+    @keyframes timerBeat {
+      0%,100% { transform: translateX(-50%) scale(1);   }
+      50%      { transform: translateX(-50%) scale(1.12); }
+    }
+
+    /* Question counter top-right */
+    .q-counter {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.35);
+      font-weight: bold;
+      z-index: 5;
+    }
+
+    /* Question text with rush animation */
+    .question-text {
+      font-size: clamp(1.15rem, 4.5vw, 1.7rem);
+      font-weight: bold;
+      text-align: center;
+      padding: 16px 28px;
+      line-height: 1.45;
+      transform-origin: center center;
+      max-width: 92%;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+    }
+
+    @keyframes questionRush {
+      from {
+        transform: scale(0.6);
+        opacity: 1;
+      }
+      to {
+        transform: scale(3.2);
+        opacity: 1;
+      }
+    }
+    .question-text.rushing {
+      animation: questionRush 20s linear forwards;
+    }
+
+    /* Progress bar */
+    .progress-wrap {
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%; height: 5px;
+      background: rgba(255,255,255,0.08);
+    }
+    .progress-fill {
+      height: 100%;
+      width: 100%;
+      transform-origin: left center;
+      background: linear-gradient(90deg, #7c3aed, #3b82f6, #ef4444);
+    }
+
+    /* --- Choices area (bottom 50%) --- */
+    .choices-area {
+      flex: 0 0 50%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 10px;
+      padding: 10px;
+      background: #0d0d1a;
+    }
+
+    .choice-btn {
+      background: rgba(255,255,255,0.06);
+      border: 2px solid rgba(255,255,255,0.13);
+      border-radius: 14px;
+      color: white;
+      font-size: clamp(1rem, 4vw, 1.25rem);
+      font-weight: bold;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px 6px;
+      transition: background 0.18s, border-color 0.18s, box-shadow 0.18s, transform 0.1s;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .choice-btn:active:not(:disabled) { transform: scale(0.95); }
+
+    .choice-btn.selected {
+      background: rgba(99,102,241,0.38);
+      border-color: #818cf8;
+      box-shadow: 0 0 22px rgba(99,102,241,0.55), inset 0 0 12px rgba(99,102,241,0.2);
+    }
+    .choice-btn.correct {
+      background: rgba(16,185,129,0.45);
+      border-color: #34d399;
+      box-shadow: 0 0 28px rgba(16,185,129,0.65);
+    }
+    .choice-btn.wrong {
+      background: rgba(239,68,68,0.38);
+      border-color: #f87171;
+      box-shadow: 0 0 22px rgba(239,68,68,0.5);
+    }
+    .choice-btn:disabled { cursor: default; }
+
+    /* ===== BETWEEN SCREEN ===== */
+    #between-screen {
+      background: radial-gradient(ellipse at 50% 45%, #1a1a3e 0%, #0d0d1a 65%);
+      gap: 10px;
+    }
+
+    .between-verdict {
+      font-size: clamp(2rem, 8vw, 2.8rem);
+      font-weight: 900;
+      letter-spacing: 0.04em;
+    }
+    .v-correct { color: #34d399; text-shadow: 0 0 30px rgba(52,211,153,0.7); }
+    .v-wrong   { color: #f87171; text-shadow: 0 0 30px rgba(248,113,113,0.7); }
+
+    .between-answer {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.55);
+      text-align: center;
+      min-height: 1.4em;
+    }
+
+    .between-next-label {
+      margin-top: 16px;
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.05em;
+    }
+
+    .between-countdown {
+      font-size: clamp(3.5rem, 14vw, 6rem);
+      font-weight: 900;
+      color: #818cf8;
+      text-shadow: 0 0 30px rgba(129,140,248,0.6);
+    }
+
+    /* ===== RESULT SCREEN ===== */
+    #result-screen {
+      background: radial-gradient(ellipse at 50% 45%, #1a1a3e 0%, #0d0d1a 65%);
+      gap: 8px;
+    }
+
+    .result-title {
+      font-size: clamp(1.4rem, 5vw, 2rem);
+      color: rgba(255,255,255,0.65);
+      letter-spacing: 0.05em;
+    }
+    .result-label {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 0.08em;
+    }
+    .result-score {
+      font-size: clamp(5rem, 22vw, 9rem);
+      font-weight: 900;
+      line-height: 1;
+      background: linear-gradient(135deg, #fbbf24, #f97316);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .result-denom {
+      font-size: 1.4rem;
+      color: rgba(255,255,255,0.38);
+      margin-top: -4px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== START SCREEN ===== -->
+<div id="start-screen" class="screen">
+  <div class="game-title">迫りくるクイズ</div>
+  <div class="game-sub">
+    制限時間 <strong style="color:#a78bfa">20秒</strong>！<br>
+    選択肢をタップして答えよう
+  </div>
+  <button class="btn-primary" onclick="startGame()">ゲームスタート</button>
+</div>
+
+<!-- ===== GAME SCREEN ===== -->
+<div id="game-screen" class="screen hidden">
+  <div class="question-area" id="question-area">
+    <div class="timer-label" id="timer-label">5</div>
+    <span class="q-counter" id="q-counter">1 / 3</span>
+    <div class="question-text" id="question-text"></div>
+    <div class="progress-wrap">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+  </div>
+  <div class="choices-area">
+    <button class="choice-btn" id="c0" onclick="tap(0)"></button>
+    <button class="choice-btn" id="c1" onclick="tap(1)"></button>
+    <button class="choice-btn" id="c2" onclick="tap(2)"></button>
+    <button class="choice-btn" id="c3" onclick="tap(3)"></button>
+  </div>
+</div>
+
+<!-- ===== BETWEEN SCREEN ===== -->
+<div id="between-screen" class="screen hidden">
+  <div class="between-verdict" id="between-verdict"></div>
+  <div class="between-answer" id="between-answer"></div>
+  <div class="between-next-label">次の問題まで…</div>
+  <div class="between-countdown" id="between-countdown">5</div>
+</div>
+
+<!-- ===== RESULT SCREEN ===== -->
+<div id="result-screen" class="screen hidden">
+  <div class="result-title">ゲーム終了！</div>
+  <div class="result-label">正 答 数</div>
+  <div class="result-score" id="result-score">0</div>
+  <div class="result-denom" id="result-denom">/ 3 問</div>
+  <button class="btn-primary" onclick="startGame()" style="margin-top:28px">もう一度</button>
+</div>
+
+<script>
+  /* ===== DATA ===== */
+  const QUESTIONS = [
+    {
+      text: 'たかしくんの出身は？',
+      choices: ['東京', '大阪', '名古屋', '札幌'],
+      correct: '東京'
+    },
+    {
+      text: '花子ちゃんの好きな食べ物は？',
+      choices: ['寿司', '焼肉', 'うどん', 'そば'],
+      correct: 'うどん'
+    },
+    {
+      text: 'にしくんの趣味は？',
+      choices: ['サッカー', '野球', 'テニス', 'スケート'],
+      correct: 'スケート'
+    }
+  ];
+
+  /* ===== STATE ===== */
+  let qIdx     = 0;
+  let score    = 0;
+  let selected = 0;   // currently highlighted choice index
+  let timeLeft = 20;
+  let tickId   = null;
+  let betweenId = null;
+  let submitted = false;
+
+  /* ===== HELPERS ===== */
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+  }
+
+  function c(i) { return document.getElementById('c' + i); }
+
+  /* ===== GAME FLOW ===== */
+  function startGame() {
+    qIdx = 0;
+    score = 0;
+    clearInterval(tickId);
+    clearInterval(betweenId);
+    showQuestion();
+  }
+
+  function showQuestion() {
+    submitted = false;
+    selected  = 0;
+    timeLeft  = 20;
+
+    clearInterval(tickId);
+    clearInterval(betweenId);
+
+    const q = QUESTIONS[qIdx];
+    showScreen('game-screen');
+
+    /* question counter */
+    document.getElementById('q-counter').textContent = `${qIdx + 1} / ${QUESTIONS.length}`;
+
+    /* question text — restart CSS animation */
+    const qt = document.getElementById('question-text');
+    qt.textContent = q.text;
+    qt.classList.remove('rushing');
+    void qt.offsetWidth;            // force reflow
+    qt.classList.add('rushing');
+
+    /* remove danger glow */
+    document.getElementById('question-area').classList.remove('danger');
+
+    /* choices */
+    for (let i = 0; i < 4; i++) {
+      const el = c(i);
+      el.textContent = q.choices[i];
+      el.className   = 'choice-btn';
+      el.disabled    = false;
+    }
+    /* default selection: top-left (index 0) */
+    c(0).classList.add('selected');
+
+    /* timer label hidden */
+    const tl = document.getElementById('timer-label');
+    tl.textContent = '';
+    tl.classList.remove('show');
+
+    /* progress bar reset → animate */
+    const pf = document.getElementById('progress-fill');
+    pf.style.transition = 'none';
+    pf.style.transform  = 'scaleX(1)';
+    void pf.offsetWidth;
+    pf.style.transition = 'transform 20s linear';
+    pf.style.transform  = 'scaleX(0)';
+
+    /* start countdown */
+    tickId = setInterval(tick, 1000);
+  }
+
+  function tick() {
+    timeLeft--;
+
+    /* show timer when ≤ 5 seconds remain */
+    if (timeLeft <= 5 && timeLeft > 0) {
+      const tl = document.getElementById('timer-label');
+      tl.textContent = timeLeft;
+      tl.classList.add('show');
+      document.getElementById('question-area').classList.add('danger');
+    }
+
+    if (timeLeft <= 0) {
+      clearInterval(tickId);
+      submitAnswer();
+    }
+  }
+
+  function tap(idx) {
+    if (submitted) return;
+    /* update highlight */
+    for (let i = 0; i < 4; i++) c(i).classList.remove('selected');
+    c(idx).classList.add('selected');
+    selected = idx;
+  }
+
+  function submitAnswer() {
+    if (submitted) return;
+    submitted = true;
+
+    clearInterval(tickId);
+
+    /* freeze question text animation */
+    const qt = document.getElementById('question-text');
+    qt.style.transform = getComputedStyle(qt).transform;
+    qt.classList.remove('rushing');
+
+    /* freeze progress bar */
+    const pf = document.getElementById('progress-fill');
+    pf.style.transition = 'none';
+    pf.style.transform  = getComputedStyle(pf).transform;
+
+    /* disable all choices */
+    for (let i = 0; i < 4; i++) c(i).disabled = true;
+
+    const q          = QUESTIONS[qIdx];
+    const correctIdx = q.choices.indexOf(q.correct);
+    const isCorrect  = (selected === correctIdx);
+
+    if (isCorrect) score++;
+
+    /* reveal correct / wrong */
+    c(correctIdx).classList.add('correct');
+    if (!isCorrect) {
+      c(selected).classList.remove('selected');
+      c(selected).classList.add('wrong');
+    }
+
+    /* wait 1.5 s, then transition */
+    setTimeout(() => {
+      if (qIdx >= QUESTIONS.length - 1) {
+        showResult();
+      } else {
+        showBetween(isCorrect);
+      }
+    }, 1500);
+  }
+
+  function showBetween(isCorrect) {
+    showScreen('between-screen');
+
+    const q   = QUESTIONS[qIdx];
+    const vEl = document.getElementById('between-verdict');
+    const aEl = document.getElementById('between-answer');
+
+    if (isCorrect) {
+      vEl.textContent = '正解！';
+      vEl.className   = 'between-verdict v-correct';
+      aEl.textContent = '';
+    } else {
+      vEl.textContent = '不正解…';
+      vEl.className   = 'between-verdict v-wrong';
+      aEl.textContent = `正解: ${q.correct}`;
+    }
+
+    let cnt = 5;
+    document.getElementById('between-countdown').textContent = cnt;
+
+    clearInterval(betweenId);
+    betweenId = setInterval(() => {
+      cnt--;
+      document.getElementById('between-countdown').textContent = cnt;
+      if (cnt <= 0) {
+        clearInterval(betweenId);
+        qIdx++;
+        showQuestion();
+      }
+    }, 1000);
+  }
+
+  function showResult() {
+    showScreen('result-screen');
+    document.getElementById('result-score').textContent = score;
+    document.getElementById('result-denom').textContent = `/ ${QUESTIONS.length} 問`;
+  }
+</script>
+</body>
+</html>
