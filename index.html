@@ -547,7 +547,21 @@
   <button class="btn-primary" onclick="showScreen(rankingOrigin)" style="margin-top:8px">戻る</button>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
+  /* ===== FIREBASE ===== */
+  const firebaseConfig = {
+    apiKey: "AIzaSyAe8hXLZk0kL90o0iXccpqZM0_0KSFDCdg",
+    authDomain: "quiz-ranking-eef9a.firebaseapp.com",
+    projectId: "quiz-ranking-eef9a",
+    storageBucket: "quiz-ranking-eef9a.firebasestorage.app",
+    messagingSenderId: "562359055278",
+    appId: "1:562359055278:web:215e3e12e4518873994e3f"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
   /* ===== DATA ===== */
   const QUESTIONS = [
     {
@@ -579,58 +593,76 @@
   let endTime   = null;  // 最終問題の回答終了時刻
   let rankingOrigin = 'start-screen'; // ランキング画面の「戻る」先
 
-  /* ===== RANKING ===== */
-  const RANKING_KEY = 'quiz_rankings';
+  /* ===== RANKING (Firestore で全プレイヤー間で共有) ===== */
+  const RANKING_COLLECTION = 'rankings';
 
-  function loadRankings() {
+  async function loadRankings() {
     try {
-      return JSON.parse(localStorage.getItem(RANKING_KEY) || '[]');
+      const snap = await db.collection(RANKING_COLLECTION)
+        .orderBy('total', 'desc')
+        .limit(50)
+        .get();
+      return snap.docs.map(doc => doc.data());
     } catch (e) {
-      return [];
+      console.error('ランキングの取得に失敗しました', e);
+      return null;
     }
   }
 
-  function saveRankingEntry(entry) {
-    const list = loadRankings();
-    list.push(entry);
-    list.sort((a, b) => b.total - a.total);
-    localStorage.setItem(RANKING_KEY, JSON.stringify(list.slice(0, 50)));
+  async function saveRankingEntry(entry) {
+    try {
+      await db.collection(RANKING_COLLECTION).add(entry);
+    } catch (e) {
+      console.error('ランキングの送信に失敗しました', e);
+    }
   }
 
-  function showRanking(origin) {
-    rankingOrigin = origin;
-    const list = loadRankings().sort((a, b) => b.total - a.total);
+  function renderRankingMessage(text) {
     const listEl = document.getElementById('ranking-list');
     listEl.innerHTML = '';
+    const msg = document.createElement('div');
+    msg.className = 'ranking-empty';
+    msg.textContent = text;
+    listEl.appendChild(msg);
+  }
 
+  async function showRanking(origin) {
+    rankingOrigin = origin;
+    renderRankingMessage('読み込み中…');
+    showScreen('ranking-screen');
+
+    const list = await loadRankings();
+    const listEl = document.getElementById('ranking-list');
+
+    if (list === null) {
+      renderRankingMessage('ランキングの取得に失敗しました');
+      return;
+    }
     if (list.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'ranking-empty';
-      empty.textContent = 'まだ記録がありません';
-      listEl.appendChild(empty);
-    } else {
-      list.forEach((entry, i) => {
-        const row = document.createElement('div');
-        row.className = 'ranking-row';
-
-        const rank = document.createElement('span');
-        rank.className = 'ranking-rank';
-        rank.textContent = `${i + 1}`;
-
-        const name = document.createElement('span');
-        name.className = 'ranking-name';
-        name.textContent = entry.name;
-
-        const total = document.createElement('span');
-        total.className = 'ranking-score';
-        total.textContent = entry.total.toFixed(2);
-
-        row.append(rank, name, total);
-        listEl.appendChild(row);
-      });
+      renderRankingMessage('まだ記録がありません');
+      return;
     }
 
-    showScreen('ranking-screen');
+    listEl.innerHTML = '';
+    list.forEach((entry, i) => {
+      const row = document.createElement('div');
+      row.className = 'ranking-row';
+
+      const rank = document.createElement('span');
+      rank.className = 'ranking-rank';
+      rank.textContent = `${i + 1}`;
+
+      const name = document.createElement('span');
+      name.className = 'ranking-name';
+      name.textContent = entry.name;
+
+      const total = document.createElement('span');
+      total.className = 'ranking-score';
+      total.textContent = entry.total.toFixed(2);
+
+      row.append(rank, name, total);
+      listEl.appendChild(row);
+    });
   }
 
   /* ===== USER REGISTRATION ===== */
