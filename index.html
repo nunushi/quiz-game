@@ -72,6 +72,84 @@
     }
     .btn-primary:active { transform: scale(0.96); box-shadow: 0 3px 14px rgba(124,58,237,0.4); }
 
+    .btn-secondary {
+      padding: 12px 36px;
+      font-size: 1rem;
+      font-weight: bold;
+      font-family: inherit;
+      background: transparent;
+      color: #a78bfa;
+      border: 2px solid #7c3aed;
+      border-radius: 50px;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      transition: transform 0.12s, background 0.12s;
+    }
+    .btn-secondary:active { transform: scale(0.96); background: rgba(124,58,237,0.15); }
+
+    /* ===== REGISTER SCREEN ===== */
+    #register-screen {
+      background: radial-gradient(ellipse at 50% 40%, #1e1e4a 0%, #0d0d1a 65%);
+      gap: 14px;
+      padding: 0 28px;
+      text-align: center;
+    }
+
+    .reg-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      max-width: 360px;
+    }
+    .reg-block.hidden { display: none; }
+
+    .user-id-box {
+      font-family: 'Courier New', monospace;
+      font-size: clamp(1.1rem, 5vw, 1.5rem);
+      font-weight: bold;
+      letter-spacing: 0.08em;
+      color: #fbbf24;
+      background: rgba(255,255,255,0.06);
+      border: 2px solid rgba(167,139,250,0.4);
+      border-radius: 14px;
+      padding: 16px 20px;
+      width: 100%;
+      word-break: break-all;
+    }
+
+    .recover-input {
+      width: 100%;
+      font-family: 'Courier New', monospace;
+      font-size: 1.1rem;
+      font-weight: bold;
+      text-align: center;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: white;
+      background: rgba(255,255,255,0.06);
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 14px;
+      padding: 14px 10px;
+      outline: none;
+    }
+    .recover-input:focus { border-color: #818cf8; }
+
+    .reg-switch {
+      margin-top: 4px;
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.45);
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .current-id-display {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.05em;
+    }
+
     /* ===== GAME SCREEN ===== */
     #game-screen {
       flex-direction: column;
@@ -288,18 +366,139 @@
       color: rgba(255,255,255,0.38);
       margin-top: -4px;
     }
+    .result-time {
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.45);
+      margin-top: 6px;
+    }
+    .result-total-label {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 0.08em;
+      margin-top: 16px;
+    }
+    .result-total {
+      font-size: clamp(2.6rem, 10vw, 4rem);
+      font-weight: 900;
+      line-height: 1;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ===== RANKING SCREEN ===== */
+    #ranking-screen {
+      background: radial-gradient(ellipse at 50% 40%, #1e1e4a 0%, #0d0d1a 65%);
+      gap: 14px;
+      padding: 16px 20px;
+    }
+
+    .ranking-list {
+      width: 100%;
+      max-width: 340px;
+      max-height: 56vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ranking-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 10px 14px;
+    }
+    .ranking-rank {
+      width: 26px;
+      flex: 0 0 auto;
+      font-weight: 900;
+      font-size: 1rem;
+      text-align: center;
+      color: rgba(255,255,255,0.5);
+    }
+    .ranking-row:nth-child(1) .ranking-rank { color: #fbbf24; }
+    .ranking-row:nth-child(2) .ranking-rank { color: #d1d5db; }
+    .ranking-row:nth-child(3) .ranking-rank { color: #f59e0b; }
+
+    .ranking-name {
+      flex: 1;
+      min-width: 0;
+      font-weight: bold;
+      font-size: 0.92rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: left;
+    }
+
+    .ranking-score {
+      flex: 0 0 auto;
+      font-weight: 900;
+      font-size: 1.05rem;
+      color: #a78bfa;
+    }
+
+    .ranking-empty {
+      color: rgba(255,255,255,0.4);
+      font-size: 0.95rem;
+      padding: 40px 0;
+    }
   </style>
 </head>
 <body>
 
+<!-- ===== REGISTER SCREEN ===== -->
+<div id="register-screen" class="screen">
+  <div class="game-title" style="font-size:clamp(1.5rem,6vw,2.2rem)">ユーザー登録</div>
+
+  <!-- 初回: 新規ID発行 -->
+  <div id="reg-new" class="reg-block hidden">
+    <div class="game-sub">
+      あなたの専用IDを発行しました。<br>
+      次回以降はこのIDで復旧できます。<br>
+      必ずメモ・スクリーンショットで保存してください。
+    </div>
+    <div class="user-id-box" id="reg-new-id"></div>
+    <button class="btn-secondary" onclick="copyId('reg-new-id')">IDをコピー</button>
+    <input type="text" id="reg-new-name" class="recover-input" style="text-transform:none" placeholder="ユーザー名を入力（任意）" maxlength="12" autocomplete="off">
+    <button class="btn-primary" onclick="confirmNewUser()" style="padding:16px 30px;font-size:1.05rem">登録してはじめる</button>
+    <div class="reg-switch" onclick="showRecoverMode()">すでにIDをお持ちの方はこちら</div>
+  </div>
+
+  <!-- 既存ユーザー -->
+  <div id="reg-existing" class="reg-block hidden">
+    <div class="game-sub">登録済みのIDが見つかりました。</div>
+    <div class="user-id-box" id="reg-existing-id"></div>
+    <input type="text" id="reg-existing-name" class="recover-input" style="text-transform:none" placeholder="ユーザー名を入力（任意）" maxlength="12" autocomplete="off">
+    <button class="btn-primary" onclick="continueAsExisting()" style="padding:16px 30px;font-size:1.05rem">このIDで続ける</button>
+    <div class="reg-switch" onclick="showRecoverMode()">別のIDを使う</div>
+  </div>
+
+  <!-- 復旧コード入力 -->
+  <div id="reg-recover" class="reg-block hidden">
+    <div class="game-sub">お手持ちの復旧コード（ユーザーID）を入力してください。</div>
+    <input type="text" id="recover-input" class="recover-input" placeholder="例: QZ-AB12-CD34" autocomplete="off" autocapitalize="characters">
+    <input type="text" id="reg-recover-name" class="recover-input" style="text-transform:none" placeholder="ユーザー名を入力（任意）" maxlength="12" autocomplete="off">
+    <button class="btn-primary" onclick="recoverUser()" style="padding:16px 30px;font-size:1.05rem">このIDで復旧する</button>
+    <div class="reg-switch" onclick="showFreshMode()">新しいIDを発行する</div>
+  </div>
+</div>
+
 <!-- ===== START SCREEN ===== -->
-<div id="start-screen" class="screen">
+<div id="start-screen" class="screen hidden">
   <div class="game-title">迫りくるクイズ</div>
   <div class="game-sub">
     制限時間 <strong style="color:#a78bfa">20秒</strong>！<br>
     選択肢をタップして答えよう
   </div>
+  <div class="current-id-display" id="current-id-display"></div>
   <button class="btn-primary" onclick="startGame()">ゲームスタート</button>
+  <button class="btn-secondary" onclick="showRanking('start-screen')">ランキングを見る</button>
 </div>
 
 <!-- ===== GAME SCREEN ===== -->
@@ -334,7 +533,18 @@
   <div class="result-label">正 答 数</div>
   <div class="result-score" id="result-score">0</div>
   <div class="result-denom" id="result-denom">/ 3 問</div>
-  <button class="btn-primary" onclick="startGame()" style="margin-top:28px">もう一度</button>
+  <div class="result-time" id="result-time"></div>
+  <div class="result-total-label">総 合 点</div>
+  <div class="result-total" id="result-total">0</div>
+  <button class="btn-primary" onclick="showScreen('start-screen')" style="margin-top:28px">もう一度</button>
+  <button class="btn-secondary" onclick="showRanking('result-screen')">ランキングを見る</button>
+</div>
+
+<!-- ===== RANKING SCREEN ===== -->
+<div id="ranking-screen" class="screen hidden">
+  <div class="game-title" style="font-size:clamp(1.5rem,6vw,2.2rem)">ランキング</div>
+  <div class="ranking-list" id="ranking-list"></div>
+  <button class="btn-primary" onclick="showScreen(rankingOrigin)" style="margin-top:8px">戻る</button>
 </div>
 
 <script>
@@ -365,6 +575,140 @@
   let tickId   = null;
   let betweenId = null;
   let submitted = false;
+  let startTime = null;  // ゲーム開始ボタン押下時刻（タイムアタック計測用）
+  let endTime   = null;  // 最終問題の回答終了時刻
+  let rankingOrigin = 'start-screen'; // ランキング画面の「戻る」先
+
+  /* ===== RANKING ===== */
+  const RANKING_KEY = 'quiz_rankings';
+
+  function loadRankings() {
+    try {
+      return JSON.parse(localStorage.getItem(RANKING_KEY) || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveRankingEntry(entry) {
+    const list = loadRankings();
+    list.push(entry);
+    list.sort((a, b) => b.total - a.total);
+    localStorage.setItem(RANKING_KEY, JSON.stringify(list.slice(0, 50)));
+  }
+
+  function showRanking(origin) {
+    rankingOrigin = origin;
+    const list = loadRankings().sort((a, b) => b.total - a.total);
+    const listEl = document.getElementById('ranking-list');
+    listEl.innerHTML = '';
+
+    if (list.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'ranking-empty';
+      empty.textContent = 'まだ記録がありません';
+      listEl.appendChild(empty);
+    } else {
+      list.forEach((entry, i) => {
+        const row = document.createElement('div');
+        row.className = 'ranking-row';
+
+        const rank = document.createElement('span');
+        rank.className = 'ranking-rank';
+        rank.textContent = `${i + 1}`;
+
+        const name = document.createElement('span');
+        name.className = 'ranking-name';
+        name.textContent = entry.name;
+
+        const total = document.createElement('span');
+        total.className = 'ranking-score';
+        total.textContent = entry.total.toFixed(2);
+
+        row.append(rank, name, total);
+        listEl.appendChild(row);
+      });
+    }
+
+    showScreen('ranking-screen');
+  }
+
+  /* ===== USER REGISTRATION ===== */
+  const USER_ID_KEY   = 'quiz_user_id';
+  const USER_NAME_KEY = 'quiz_user_name';
+  let currentUserId   = null;
+  let currentUserName = '';
+  let pendingNewId    = null;
+
+  function genUserId() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 紛らわしい文字(0,O,1,I)を除外
+    const seg = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    return `QZ-${seg()}-${seg()}`;
+  }
+
+  function regBlock(id) {
+    document.querySelectorAll('.reg-block').forEach(b => b.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+  }
+
+  function initRegister() {
+    const existing = localStorage.getItem(USER_ID_KEY);
+    if (existing) {
+      currentUserId = existing;
+      document.getElementById('reg-existing-id').textContent = existing;
+      document.getElementById('reg-existing-name').value = localStorage.getItem(USER_NAME_KEY) || '';
+      regBlock('reg-existing');
+    } else {
+      pendingNewId = genUserId();
+      document.getElementById('reg-new-id').textContent = pendingNewId;
+      regBlock('reg-new');
+    }
+  }
+
+  function showRecoverMode() {
+    regBlock('reg-recover');
+    document.getElementById('recover-input').value = '';
+    document.getElementById('reg-recover-name').value = '';
+    document.getElementById('recover-input').focus();
+  }
+
+  function showFreshMode() {
+    pendingNewId = genUserId();
+    document.getElementById('reg-new-id').textContent = pendingNewId;
+    regBlock('reg-new');
+  }
+
+  function copyId(elId) {
+    const text = document.getElementById(elId).textContent;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+  }
+
+  function finishRegistration(id, name) {
+    currentUserId   = id;
+    currentUserName = name.trim().slice(0, 12) || '名無しさん';
+    localStorage.setItem(USER_ID_KEY, currentUserId);
+    localStorage.setItem(USER_NAME_KEY, currentUserName);
+    document.getElementById('current-id-display').textContent = `${currentUserName}（ID: ${currentUserId}）`;
+    showScreen('start-screen');
+  }
+
+  function confirmNewUser() {
+    finishRegistration(pendingNewId, document.getElementById('reg-new-name').value);
+  }
+  function continueAsExisting() {
+    finishRegistration(currentUserId, document.getElementById('reg-existing-name').value);
+  }
+
+  function recoverUser() {
+    const val = document.getElementById('recover-input').value.trim().toUpperCase();
+    if (!val) {
+      alert('復旧コードを入力してください。');
+      return;
+    }
+    finishRegistration(val, document.getElementById('reg-recover-name').value);
+  }
 
   /* ===== HELPERS ===== */
   function showScreen(id) {
@@ -378,6 +722,8 @@
   function startGame() {
     qIdx = 0;
     score = 0;
+    startTime = Date.now();
+    endTime   = null;
     clearInterval(tickId);
     clearInterval(betweenId);
     showQuestion();
@@ -457,6 +803,7 @@
     for (let i = 0; i < 4; i++) c(i).classList.remove('selected');
     c(idx).classList.add('selected');
     selected = idx;
+    submitAnswer();
   }
 
   function submitAnswer() {
@@ -483,6 +830,11 @@
     const isCorrect  = (selected === correctIdx);
 
     if (isCorrect) score++;
+
+    /* 最終問題の回答が確定した時点でタイムアタックの計測を終了 */
+    if (qIdx >= QUESTIONS.length - 1) {
+      endTime = Date.now();
+    }
 
     /* reveal correct / wrong */
     c(correctIdx).classList.add('correct');
@@ -537,7 +889,26 @@
     showScreen('result-screen');
     document.getElementById('result-score').textContent = score;
     document.getElementById('result-denom').textContent = `/ ${QUESTIONS.length} 問`;
+
+    /* タイムアタック: ゲーム開始〜最終問題の回答終了までの時間(秒・小数第二桁) */
+    const elapsedSec = Math.round(((endTime - startTime) / 1000) * 100) / 100;
+    const totalScore = score * 100 - elapsedSec;
+
+    document.getElementById('result-time').textContent = `回答時間: ${elapsedSec.toFixed(2)} 秒`;
+    document.getElementById('result-total').textContent = totalScore.toFixed(2);
+
+    saveRankingEntry({
+      id: currentUserId,
+      name: currentUserName,
+      score: score,
+      elapsedSec: elapsedSec,
+      total: totalScore,
+      date: Date.now()
+    });
   }
+
+  /* ===== INIT ===== */
+  initRegister();
 </script>
 </body>
 </html>
