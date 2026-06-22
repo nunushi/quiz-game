@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>迫りくるクイズ - ホスト</title>
+  <style>
+    * {
+      margin: 0; padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: #0d0d1a;
+      font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', 'Yu Gothic', sans-serif;
+      color: white;
+      touch-action: manipulation;
+    }
+
+    /* ===== SCREENS ===== */
+    .screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .screen.hidden { display: none; }
+
+    /* ===== START ===== */
+    #start-screen {
+      background: radial-gradient(ellipse at 50% 40%, #1e1e4a 0%, #0d0d1a 65%);
+      gap: 14px;
+      padding: 0 28px;
+      text-align: center;
+    }
+
+    .game-title {
+      font-size: clamp(2rem, 7vw, 3rem);
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      background: linear-gradient(135deg, #a78bfa 30%, #60a5fa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-align: center;
+    }
+
+    .game-sub {
+      color: rgba(255,255,255,0.45);
+      font-size: 0.95rem;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .btn-primary {
+      margin-top: 24px;
+      padding: 16px 52px;
+      font-size: 1.25rem;
+      font-weight: bold;
+      font-family: inherit;
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      letter-spacing: 0.1em;
+      box-shadow: 0 6px 28px rgba(124,58,237,0.5);
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .btn-primary:active { transform: scale(0.96); box-shadow: 0 3px 14px rgba(124,58,237,0.4); }
+
+    .btn-secondary {
+      padding: 12px 36px;
+      font-size: 1rem;
+      font-weight: bold;
+      font-family: inherit;
+      background: transparent;
+      color: #a78bfa;
+      border: 2px solid #7c3aed;
+      border-radius: 50px;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      transition: transform 0.12s, background 0.12s;
+    }
+    .btn-secondary:active { transform: scale(0.96); background: rgba(124,58,237,0.15); }
+
+    /* ===== PASSWORD SCREEN ===== */
+    #password-screen {
+      background: radial-gradient(ellipse at 50% 40%, #1e1e4a 0%, #0d0d1a 65%);
+      gap: 14px;
+      padding: 0 28px;
+      text-align: center;
+    }
+
+    .password-input {
+      width: 100%;
+      max-width: 280px;
+      font-family: 'Courier New', monospace;
+      font-size: 1.1rem;
+      font-weight: bold;
+      text-align: center;
+      letter-spacing: 0.08em;
+      color: white;
+      background: rgba(255,255,255,0.06);
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 14px;
+      padding: 14px 10px;
+      outline: none;
+    }
+    .password-input:focus { border-color: #818cf8; }
+
+    .password-error {
+      color: #f87171;
+      font-size: 0.85rem;
+      min-height: 1.2em;
+    }
+
+    /* ===== PROGRESS (出題中) SCREEN ===== */
+    #progress-screen {
+      background: radial-gradient(ellipse at 50% 40%, #1e1e4a 0%, #0d0d1a 65%);
+      gap: 18px;
+    }
+
+    .host-phase-label {
+      font-size: 0.95rem;
+      letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.5);
+      font-weight: bold;
+    }
+    .host-q-counter {
+      font-size: clamp(1.3rem, 5vw, 1.8rem);
+      font-weight: 900;
+      color: #a78bfa;
+      letter-spacing: 0.05em;
+    }
+    .host-question-text {
+      font-size: clamp(1.1rem, 4.5vw, 1.6rem);
+      font-weight: bold;
+      text-align: center;
+      max-width: 88%;
+      line-height: 1.5;
+      padding: 0 20px;
+    }
+    .host-timer {
+      font-size: clamp(4rem, 18vw, 7rem);
+      font-weight: 900;
+      color: #818cf8;
+      text-shadow: 0 0 30px rgba(129,140,248,0.6);
+      line-height: 1;
+    }
+
+    /* ===== RANKING SCREEN ===== */
+    #ranking-screen {
+      background: radial-gradient(ellipse at 50% 40%, #1e1e4a 0%, #0d0d1a 65%);
+      gap: 14px;
+      padding: 16px 20px;
+    }
+
+    .ranking-list {
+      width: 100%;
+      max-width: 340px;
+      max-height: 56vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ranking-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 10px 14px;
+    }
+    .ranking-rank {
+      width: 26px;
+      flex: 0 0 auto;
+      font-weight: 900;
+      font-size: 1rem;
+      text-align: center;
+      color: rgba(255,255,255,0.5);
+    }
+    .ranking-row:nth-child(1) .ranking-rank { color: #fbbf24; }
+    .ranking-row:nth-child(2) .ranking-rank { color: #d1d5db; }
+    .ranking-row:nth-child(3) .ranking-rank { color: #f59e0b; }
+
+    .ranking-name {
+      flex: 1;
+      min-width: 0;
+      font-weight: bold;
+      font-size: 0.92rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: left;
+    }
+
+    .ranking-score {
+      flex: 0 0 auto;
+      font-weight: 900;
+      font-size: 1.05rem;
+      color: #a78bfa;
+    }
+
+    .ranking-empty {
+      color: rgba(255,255,255,0.4);
+      font-size: 0.95rem;
+      padding: 40px 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== PASSWORD SCREEN ===== -->
+<div id="password-screen" class="screen">
+  <div class="game-title" style="font-size:clamp(1.5rem,6vw,2.2rem)">ホスト認証</div>
+  <div class="game-sub">パスワードを入力してください。</div>
+  <input type="password" id="password-input" class="password-input" placeholder="パスワード" autocomplete="off" onkeydown="if(event.key==='Enter') checkPassword()">
+  <div class="password-error" id="password-error"></div>
+  <button class="btn-primary" onclick="checkPassword()">入室する</button>
+</div>
+
+<!-- ===== START (HOST CONTROL) SCREEN ===== -->
+<div id="start-screen" class="screen hidden">
+  <div class="game-title">迫りくるクイズ</div>
+  <div class="game-sub">
+    ホスト用コントローラーです。<br>
+    「開始」を押すと全プレイヤーの画面に出題が始まります。
+  </div>
+  <button class="btn-primary" onclick="startHostGame()">開始</button>
+</div>
+
+<!-- ===== PROGRESS SCREEN (出題中) ===== -->
+<div id="progress-screen" class="screen hidden">
+  <div class="host-phase-label" id="host-phase-label">解答受付中</div>
+  <div class="host-q-counter" id="host-q-counter">1 / 3</div>
+  <div class="host-question-text" id="host-question-text"></div>
+  <div class="host-timer" id="host-timer">20</div>
+</div>
+
+<!-- ===== RANKING SCREEN ===== -->
+<div id="ranking-screen" class="screen hidden">
+  <div class="game-title" style="font-size:clamp(1.5rem,6vw,2.2rem)">ランキング</div>
+  <div class="ranking-list" id="ranking-list"></div>
+  <button class="btn-primary" onclick="startHostGame()" style="margin-top:8px">もう一度開始する</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  /* ===== FIREBASE ===== */
+  const firebaseConfig = {
+    apiKey: "AIzaSyAe8hXLZk0kL90o0iXccpqZM0_0KSFDCdg",
+    authDomain: "quiz-ranking-eef9a.firebaseapp.com",
+    projectId: "quiz-ranking-eef9a",
+    storageBucket: "quiz-ranking-eef9a.firebasestorage.app",
+    messagingSenderId: "562359055278",
+    appId: "1:562359055278:web:215e3e12e4518873994e3f"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  /* ===== DATA (プレイヤー側と同一の内容を保持) ===== */
+  const QUESTIONS = [
+    {
+      text: 'たかしくんの出身は？',
+      choices: ['東京', '大阪', '名古屋', '札幌'],
+      correct: '東京'
+    },
+    {
+      text: '花子ちゃんの好きな食べ物は？',
+      choices: ['寿司', '焼肉', 'うどん', 'そば'],
+      correct: 'うどん'
+    },
+    {
+      text: 'にしくんの趣味は？',
+      choices: ['サッカー', '野球', 'テニス', 'スケート'],
+      correct: 'スケート'
+    }
+  ];
+
+  const QUESTION_DURATION = 20; // 出題1問あたりの解答時間（秒）
+  const BETWEEN_DURATION  = 5;  // 正解発表～次の問題までの時間（秒）
+
+  /* ===== SESSION（ホスト→プレイヤーへ進行を同期するための共有ドキュメント） ===== */
+  const SESSION_REF = db.collection('sessions').doc('main');
+
+  /* ===== RANKING (Firestore で全プレイヤー間で共有・既存と同じコレクション) ===== */
+  const RANKING_COLLECTION = 'rankings';
+
+  async function loadRankings() {
+    try {
+      const snap = await db.collection(RANKING_COLLECTION)
+        .orderBy('total', 'desc')
+        .limit(50)
+        .get();
+      return snap.docs.map(doc => doc.data());
+    } catch (e) {
+      console.error('ランキングの取得に失敗しました', e);
+      return null;
+    }
+  }
+
+  function renderRankingMessage(text) {
+    const listEl = document.getElementById('ranking-list');
+    listEl.innerHTML = '';
+    const msg = document.createElement('div');
+    msg.className = 'ranking-empty';
+    msg.textContent = text;
+    listEl.appendChild(msg);
+  }
+
+  async function showHostRanking() {
+    showScreen('ranking-screen');
+    renderRankingMessage('読み込み中…');
+
+    const list = await loadRankings();
+    const listEl = document.getElementById('ranking-list');
+
+    if (list === null) {
+      renderRankingMessage('ランキングの取得に失敗しました');
+      return;
+    }
+    if (list.length === 0) {
+      renderRankingMessage('まだ記録がありません');
+      return;
+    }
+
+    listEl.innerHTML = '';
+    list.forEach((entry, i) => {
+      const row = document.createElement('div');
+      row.className = 'ranking-row';
+
+      const rank = document.createElement('span');
+      rank.className = 'ranking-rank';
+      rank.textContent = `${i + 1}`;
+
+      const name = document.createElement('span');
+      name.className = 'ranking-name';
+      name.textContent = entry.name;
+
+      const total = document.createElement('span');
+      total.className = 'ranking-score';
+      total.textContent = entry.total.toFixed(2);
+
+      row.append(rank, name, total);
+      listEl.appendChild(row);
+    });
+  }
+
+  /* ===== HELPERS ===== */
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+  }
+
+  /* ===== HOST AUTH ===== */
+  const HOST_PASSWORD = 'admin1';
+
+  function checkPassword() {
+    const input = document.getElementById('password-input');
+    if (input.value === HOST_PASSWORD) {
+      document.getElementById('password-error').textContent = '';
+      showScreen('start-screen');
+    } else {
+      document.getElementById('password-error').textContent = 'パスワードが正しくありません。';
+      input.value = '';
+      input.focus();
+    }
+  }
+
+  /* ===== HOST GAME FLOW ===== */
+  let hostQIdx   = 0;
+  let hostTickId = null;
+
+  async function startHostGame() {
+    const runId = `run_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    hostQIdx = 0;
+
+    await SESSION_REF.set({
+      status: 'running',
+      phase: 'question',
+      runId: runId,
+      currentQuestionIndex: 0,
+      phaseStartedAtMs: Date.now(),
+      totalQuestions: QUESTIONS.length,
+      questionDuration: QUESTION_DURATION,
+      betweenDuration: BETWEEN_DURATION
+    });
+
+    showScreen('progress-screen');
+    runQuestionPhase();
+  }
+
+  function renderHostProgress() {
+    document.getElementById('host-q-counter').textContent = `${hostQIdx + 1} / ${QUESTIONS.length}`;
+    document.getElementById('host-question-text').textContent = QUESTIONS[hostQIdx].text;
+    document.getElementById('host-phase-label').textContent = '解答受付中';
+  }
+
+  function updateHostTimer(sec) {
+    document.getElementById('host-timer').textContent = Math.max(sec, 0);
+  }
+
+  function runQuestionPhase() {
+    renderHostProgress();
+    let remaining = QUESTION_DURATION;
+    updateHostTimer(remaining);
+
+    clearInterval(hostTickId);
+    hostTickId = setInterval(() => {
+      remaining--;
+      updateHostTimer(remaining);
+      if (remaining <= 0) {
+        clearInterval(hostTickId);
+        runBetweenPhase();
+      }
+    }, 1000);
+  }
+
+  function runBetweenPhase() {
+    SESSION_REF.update({ phase: 'between', phaseStartedAtMs: Date.now() });
+    document.getElementById('host-phase-label').textContent = '正解発表中';
+
+    let remaining = BETWEEN_DURATION;
+    updateHostTimer(remaining);
+
+    clearInterval(hostTickId);
+    hostTickId = setInterval(() => {
+      remaining--;
+      updateHostTimer(remaining);
+      if (remaining <= 0) {
+        clearInterval(hostTickId);
+        advanceQuestion();
+      }
+    }, 1000);
+  }
+
+  function advanceQuestion() {
+    if (hostQIdx >= QUESTIONS.length - 1) {
+      finishHostGame();
+      return;
+    }
+    hostQIdx++;
+    SESSION_REF.update({
+      phase: 'question',
+      currentQuestionIndex: hostQIdx,
+      phaseStartedAtMs: Date.now()
+    });
+    runQuestionPhase();
+  }
+
+  function finishHostGame() {
+    SESSION_REF.update({ status: 'finished' });
+    clearInterval(hostTickId);
+    /* プレイヤー側が自身のランキング送信を完了するのを少し待つ */
+    setTimeout(showHostRanking, 1500);
+  }
+</script>
+</body>
+</html>
