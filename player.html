@@ -448,9 +448,36 @@
       font-size: 0.95rem;
       padding: 40px 0;
     }
+
+    /* ===== GLOBAL ERROR BANNER ===== */
+    #global-error {
+      position: fixed;
+      left: 0; right: 0; bottom: 18px;
+      display: flex;
+      justify-content: center;
+      z-index: 50;
+      pointer-events: none;
+    }
+    #global-error.hidden { display: none; }
+    #global-error .bubble {
+      background: rgba(239,68,68,0.95);
+      color: white;
+      font-size: 0.82rem;
+      font-weight: bold;
+      padding: 10px 18px;
+      border-radius: 30px;
+      max-width: 88%;
+      text-align: center;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+    }
   </style>
 </head>
 <body>
+
+<!-- ===== GLOBAL ERROR BANNER ===== -->
+<div id="global-error" class="hidden">
+  <div class="bubble" id="global-error-text"></div>
+</div>
 
 <!-- ===== REGISTER SCREEN ===== -->
 <div id="register-screen" class="screen">
@@ -740,6 +767,14 @@
     document.getElementById(id).classList.remove('hidden');
   }
 
+  function showGlobalError(msg) {
+    document.getElementById('global-error-text').textContent = msg;
+    document.getElementById('global-error').classList.remove('hidden');
+  }
+  function clearGlobalError() {
+    document.getElementById('global-error').classList.add('hidden');
+  }
+
   function c(i) { return document.getElementById('c' + i); }
 
   /* ===== PLAYER STATE (ホストのセッションに同期して進行) ===== */
@@ -763,12 +798,16 @@
     if (sessionListenerStarted) return;
     sessionListenerStarted = true;
     SESSION_REF.onSnapshot(snap => {
+      clearGlobalError();
       if (!snap.exists) {
         showScreen('waiting-screen');
         return;
       }
       handleSessionUpdate(snap.data());
-    }, err => console.error('セッションの監視に失敗しました', err));
+    }, err => {
+      console.error('セッションの監視に失敗しました', err);
+      showGlobalError('ホストとの接続に失敗しました（Firestoreの権限設定を確認してください）: ' + err.message);
+    });
   }
 
   function handleSessionUpdate(data) {

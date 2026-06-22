@@ -215,9 +215,36 @@
       font-size: 0.95rem;
       padding: 40px 0;
     }
+
+    /* ===== GLOBAL ERROR BANNER ===== */
+    #global-error {
+      position: fixed;
+      left: 0; right: 0; bottom: 18px;
+      display: flex;
+      justify-content: center;
+      z-index: 50;
+      pointer-events: none;
+    }
+    #global-error.hidden { display: none; }
+    #global-error .bubble {
+      background: rgba(239,68,68,0.95);
+      color: white;
+      font-size: 0.82rem;
+      font-weight: bold;
+      padding: 10px 18px;
+      border-radius: 30px;
+      max-width: 88%;
+      text-align: center;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+    }
   </style>
 </head>
 <body>
+
+<!-- ===== GLOBAL ERROR BANNER ===== -->
+<div id="global-error" class="hidden">
+  <div class="bubble" id="global-error-text"></div>
+</div>
 
 <!-- ===== PASSWORD SCREEN ===== -->
 <div id="password-screen" class="screen">
@@ -362,6 +389,14 @@
     document.getElementById(id).classList.remove('hidden');
   }
 
+  function showGlobalError(msg) {
+    document.getElementById('global-error-text').textContent = msg;
+    document.getElementById('global-error').classList.remove('hidden');
+  }
+  function clearGlobalError() {
+    document.getElementById('global-error').classList.add('hidden');
+  }
+
   /* ===== HOST AUTH ===== */
   const HOST_PASSWORD = 'admin1';
 
@@ -385,17 +420,24 @@
     const runId = `run_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     hostQIdx = 0;
 
-    await SESSION_REF.set({
-      status: 'running',
-      phase: 'question',
-      runId: runId,
-      currentQuestionIndex: 0,
-      phaseStartedAtMs: Date.now(),
-      totalQuestions: QUESTIONS.length,
-      questionDuration: QUESTION_DURATION,
-      betweenDuration: BETWEEN_DURATION
-    });
+    try {
+      await SESSION_REF.set({
+        status: 'running',
+        phase: 'question',
+        runId: runId,
+        currentQuestionIndex: 0,
+        phaseStartedAtMs: Date.now(),
+        totalQuestions: QUESTIONS.length,
+        questionDuration: QUESTION_DURATION,
+        betweenDuration: BETWEEN_DURATION
+      });
+    } catch (e) {
+      console.error('セッションの作成に失敗しました', e);
+      showGlobalError('ゲームを開始できませんでした（Firestoreの権限設定を確認してください）: ' + e.message);
+      return;
+    }
 
+    clearGlobalError();
     showScreen('progress-screen');
     runQuestionPhase();
   }
@@ -427,7 +469,8 @@
   }
 
   function runBetweenPhase() {
-    SESSION_REF.update({ phase: 'between', phaseStartedAtMs: Date.now() });
+    SESSION_REF.update({ phase: 'between', phaseStartedAtMs: Date.now() })
+      .catch(e => { console.error('進行の更新に失敗しました', e); showGlobalError('進行の更新に失敗しました: ' + e.message); });
     document.getElementById('host-phase-label').textContent = '正解発表中';
 
     let remaining = BETWEEN_DURATION;
@@ -454,12 +497,13 @@
       phase: 'question',
       currentQuestionIndex: hostQIdx,
       phaseStartedAtMs: Date.now()
-    });
+    }).catch(e => { console.error('進行の更新に失敗しました', e); showGlobalError('進行の更新に失敗しました: ' + e.message); });
     runQuestionPhase();
   }
 
   function finishHostGame() {
-    SESSION_REF.update({ status: 'finished' });
+    SESSION_REF.update({ status: 'finished' })
+      .catch(e => { console.error('終了処理に失敗しました', e); showGlobalError('終了処理に失敗しました: ' + e.message); });
     clearInterval(hostTickId);
     /* プレイヤー側が自身のランキング送信を完了するのを少し待つ */
     setTimeout(showHostRanking, 1500);
