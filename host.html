@@ -465,7 +465,12 @@
       updateHostTimer(remaining);
       if (remaining <= 0) {
         clearInterval(hostTickId);
-        runBetweenPhase();
+        if (hostQIdx >= QUESTIONS.length - 1) {
+          /* 最終問題はインターバルを経由せず、そのままリザルトへ */
+          finishHostGame();
+        } else {
+          runBetweenPhase();
+        }
       }
     }, 1000);
   }
