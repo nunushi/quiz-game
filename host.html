@@ -263,6 +263,7 @@
     「開始」を押すと全プレイヤーの画面に出題が始まります。
   </div>
   <button class="btn-primary" onclick="startHostGame()">開始</button>
+  <button class="btn-secondary" onclick="showHostRanking()">ランキングを見る</button>
 </div>
 
 <!-- ===== PROGRESS SCREEN (出題中) ===== -->
@@ -278,6 +279,7 @@
   <div class="game-title" style="font-size:clamp(1.5rem,6vw,2.2rem)">ランキング</div>
   <div class="ranking-list" id="ranking-list"></div>
   <button class="btn-primary" onclick="startHostGame()" style="margin-top:8px">もう一度開始する</button>
+  <button class="btn-secondary" onclick="showScreen('start-screen')">開始画面に戻る</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>

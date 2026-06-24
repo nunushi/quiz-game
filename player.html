@@ -213,6 +213,20 @@
       z-index: 5;
     }
 
+    /* Persistent remaining-time badge, top-left (keeps showing after submit) */
+    .q-timer {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.55);
+      font-weight: bold;
+      background: rgba(255,255,255,0.08);
+      padding: 4px 10px;
+      border-radius: 20px;
+      z-index: 5;
+    }
+
     /* Question text with rush animation */
     .question-text {
       font-size: clamp(1.15rem, 4.5vw, 1.7rem);
@@ -563,6 +577,7 @@
   <div class="question-area" id="question-area">
     <div class="timer-label" id="timer-label">5</div>
     <span class="q-counter" id="q-counter">1 / 3</span>
+    <span class="q-timer" id="q-timer">20</span>
     <div class="question-text" id="question-text"></div>
     <div class="progress-wrap">
       <div class="progress-fill" id="progress-fill"></div>
@@ -828,6 +843,7 @@
   let myBetweenDuration  = 5;
   let myTotalQuestions   = QUESTIONS.length;
   let localTickId        = null;
+  let displayTickId       = null; // 残り時間バッジ用（提出後も止めない）
 
   function listenSession() {
     if (sessionListenerStarted) return;
@@ -862,6 +878,7 @@
 
     if (data.status === 'finished') {
       clearInterval(localTickId);
+      clearInterval(displayTickId);
       if (finalizedRunId !== data.runId) {
         finalizedRunId = data.runId;
         finalizeResult();
@@ -871,6 +888,7 @@
 
     if (data.status !== 'running') {
       clearInterval(localTickId);
+      clearInterval(displayTickId);
       showScreen('waiting-screen');
       return;
     }
@@ -931,6 +949,16 @@
     pf.style.transform  = 'scaleX(0)';
 
     qt.classList.add('rushing');
+
+    /* 残り時間バッジ：提出後も止めず、出題フェーズが終わるまで表示し続ける */
+    const qTimerEl = document.getElementById('q-timer');
+    qTimerEl.textContent = Math.max(Math.ceil(remainingNow), 0);
+    clearInterval(displayTickId);
+    displayTickId = setInterval(() => {
+      const left = Math.ceil(myQuestionDuration - (Date.now() - myPhaseStartedAtMs) / 1000);
+      qTimerEl.textContent = Math.max(left, 0);
+      if (left <= 0) clearInterval(displayTickId);
+    }, 1000);
 
     clearInterval(localTickId);
     localTickId = setInterval(() => {
@@ -1026,6 +1054,7 @@
     }
 
     clearInterval(localTickId);
+    clearInterval(displayTickId);
     const update = () => {
       const left = Math.ceil(myBetweenDuration - (Date.now() - phaseStartedAtMs) / 1000);
       document.getElementById('between-countdown').textContent = Math.max(left, 0);
