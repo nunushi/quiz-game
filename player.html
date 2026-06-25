@@ -218,11 +218,11 @@
       position: absolute;
       top: 12px;
       left: 14px;
-      font-size: 0.82rem;
+      font-size: 6.56rem;
       color: rgba(255,255,255,0.55);
       font-weight: bold;
       background: rgba(255,255,255,0.08);
-      padding: 4px 10px;
+      padding: 4px 14px;
       border-radius: 20px;
       z-index: 5;
     }
@@ -832,6 +832,7 @@
   let seenRunId        = null;
   let processedPhaseKey = null;
   let finalizedRunId   = null;
+  let ignoreRunId       = null; // 登録時点で既に進行中/終了済みだったrunIdは、次の新しいゲームが始まるまで無視する
 
   let myQIdx          = -1;
   let myScore         = 0;
@@ -848,20 +849,34 @@
   function listenSession() {
     if (sessionListenerStarted) return;
     sessionListenerStarted = true;
+    let isInitialSnapshot = true;
     SESSION_REF.onSnapshot(snap => {
       clearGlobalError();
+      const wasInitial = isInitialSnapshot;
+      isInitialSnapshot = false;
       if (!snap.exists) {
         showScreen('waiting-screen');
         return;
       }
-      handleSessionUpdate(snap.data());
+      handleSessionUpdate(snap.data(), wasInitial);
     }, err => {
       console.error('セッションの監視に失敗しました', err);
       showGlobalError('ホストとの接続に失敗しました（Firestoreの権限設定を確認してください）: ' + err.message);
     });
   }
 
-  function handleSessionUpdate(data) {
+  function handleSessionUpdate(data, isInitial) {
+    if (isInitial && (data.status === 'running' || data.status === 'finished')) {
+      /* 登録した時点で既に進行中・終了済みだったゲームには参加させず、待機画面のまま次の新しいゲーム開始を待つ */
+      ignoreRunId = data.runId;
+      showScreen('waiting-screen');
+      return;
+    }
+    if (data.runId === ignoreRunId) {
+      showScreen('waiting-screen');
+      return;
+    }
+
     if (data.runId !== seenRunId) {
       /* 新しいゲームが開始された：自分のスコアをリセット */
       seenRunId      = data.runId;
@@ -879,6 +894,8 @@
     if (data.status === 'finished') {
       clearInterval(localTickId);
       clearInterval(displayTickId);
+      /* 最終問題がインターバルを経由せず終了した場合の保険（未提出分を確定させる） */
+      if (!mySubmitted && myQIdx >= 0) recordAnswer(mySelected);
       if (finalizedRunId !== data.runId) {
         finalizedRunId = data.runId;
         finalizeResult();
