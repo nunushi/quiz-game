@@ -441,29 +441,28 @@
     }
 
     .ranking-list {
-      width: 100%;
-      max-width: 340px;
-      max-height: 56vh;
+      flex: 1;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 5px;
+      min-height: 0;
     }
 
     .ranking-row {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 6px;
       background: rgba(255,255,255,0.06);
       border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 12px;
-      padding: 10px 14px;
+      border-radius: 10px;
+      padding: 7px 8px;
     }
     .ranking-rank {
-      width: 26px;
+      width: 20px;
       flex: 0 0 auto;
       font-weight: 900;
-      font-size: 1rem;
+      font-size: 0.85rem;
       text-align: center;
       color: rgba(255,255,255,0.5);
     }
@@ -475,7 +474,7 @@
       flex: 1;
       min-width: 0;
       font-weight: bold;
-      font-size: 0.92rem;
+      font-size: 0.78rem;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -485,14 +484,68 @@
     .ranking-score {
       flex: 0 0 auto;
       font-weight: 900;
-      font-size: 1.05rem;
+      font-size: 0.82rem;
       color: #a78bfa;
     }
 
     .ranking-empty {
       color: rgba(255,255,255,0.4);
-      font-size: 0.95rem;
-      padding: 40px 0;
+      font-size: 0.85rem;
+      padding: 24px 0;
+      text-align: center;
+    }
+
+    /* ===== TEAM SELECT ===== */
+    .team-select {
+      text-transform: none;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a78bfa' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+    .team-select option {
+      background: #1e1e4a;
+      color: white;
+    }
+
+    /* ===== RANKING PANELS (side by side) ===== */
+    #ranking-screen {
+      justify-content: flex-start;
+      padding-top: 20px;
+    }
+
+    .ranking-panels {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 680px;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+      padding: 0 12px;
+    }
+
+    .ranking-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .ranking-panel-title {
+      font-size: 0.78rem;
+      font-weight: bold;
+      color: rgba(255,255,255,0.55);
+      letter-spacing: 0.1em;
+      text-align: center;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+      margin-bottom: 6px;
+      flex-shrink: 0;
     }
 
     /* ===== GLOBAL ERROR BANNER ===== */
@@ -539,6 +592,7 @@
     <div class="user-id-box" id="reg-new-id"></div>
     <button class="btn-secondary" onclick="copyId('reg-new-id')">IDをコピー</button>
     <input type="text" id="reg-new-name" class="recover-input" style="text-transform:none" placeholder="ユーザー名を入力（任意）" maxlength="12" autocomplete="off">
+    <select id="reg-new-team" class="recover-input team-select"></select>
     <button class="btn-primary" onclick="confirmNewUser()" style="padding:16px 30px;font-size:1.05rem">登録してはじめる</button>
     <div class="reg-switch" onclick="showRecoverMode()">すでにIDをお持ちの方はこちら</div>
   </div>
@@ -548,6 +602,7 @@
     <div class="game-sub">登録済みのIDが見つかりました。</div>
     <div class="user-id-box" id="reg-existing-id"></div>
     <input type="text" id="reg-existing-name" class="recover-input" style="text-transform:none" placeholder="ユーザー名を入力（任意）" maxlength="12" autocomplete="off">
+    <select id="reg-existing-team" class="recover-input team-select"></select>
     <button class="btn-primary" onclick="continueAsExisting()" style="padding:16px 30px;font-size:1.05rem">このIDで続ける</button>
     <div class="reg-switch" onclick="showRecoverMode()">別のIDを使う</div>
   </div>
@@ -557,6 +612,7 @@
     <div class="game-sub">お手持ちの復旧コード（ユーザーID）を入力してください。</div>
     <input type="text" id="recover-input" class="recover-input" placeholder="例: QZ-AB12-CD34" autocomplete="off" autocapitalize="characters">
     <input type="text" id="reg-recover-name" class="recover-input" style="text-transform:none" placeholder="ユーザー名を入力（任意）" maxlength="12" autocomplete="off">
+    <select id="reg-recover-team" class="recover-input team-select"></select>
     <button class="btn-primary" onclick="recoverUser()" style="padding:16px 30px;font-size:1.05rem">このIDで復旧する</button>
     <div class="reg-switch" onclick="showFreshMode()">新しいIDを発行する</div>
   </div>
@@ -617,9 +673,18 @@
 
 <!-- ===== RANKING SCREEN ===== -->
 <div id="ranking-screen" class="screen hidden">
-  <div class="game-title" style="font-size:clamp(1.5rem,6vw,2.2rem)">ランキング</div>
-  <div class="ranking-list" id="ranking-list"></div>
-  <button class="btn-primary" onclick="showScreen(rankingOrigin)" style="margin-top:8px">戻る</button>
+  <div class="game-title" style="font-size:clamp(1.5rem,6vw,2.2rem);margin-bottom:10px">ランキング</div>
+  <div class="ranking-panels">
+    <div class="ranking-panel">
+      <div class="ranking-panel-title">個 人</div>
+      <div class="ranking-list" id="ranking-list"></div>
+    </div>
+    <div class="ranking-panel">
+      <div class="ranking-panel-title">チーム</div>
+      <div class="ranking-list" id="team-ranking-list"></div>
+    </div>
+  </div>
+  <button class="btn-primary" onclick="showScreen(rankingOrigin)" style="margin-top:10px;flex-shrink:0">戻る</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -666,7 +731,7 @@
     try {
       const snap = await db.collection(RANKING_COLLECTION)
         .orderBy('total', 'desc')
-        .limit(50)
+        .limit(200)
         .get();
       return snap.docs.map(doc => doc.data());
     } catch (e) {
@@ -683,8 +748,8 @@
     }
   }
 
-  function renderRankingMessage(text) {
-    const listEl = document.getElementById('ranking-list');
+  function renderRankingMessage(text, listId) {
+    const listEl = document.getElementById(listId);
     listEl.innerHTML = '';
     const msg = document.createElement('div');
     msg.className = 'ranking-empty';
@@ -692,53 +757,116 @@
     listEl.appendChild(msg);
   }
 
-  let rankingOrigin = 'waiting-screen'; // ランキング画面の「戻る」先
+  function computeTeamRanking(entries) {
+    /* ユーザーごとにベストスコアを取得 */
+    const bestByUser = {};
+    for (const entry of entries) {
+      if (!entry.team) continue;
+      const key = entry.id;
+      if (!bestByUser[key] || entry.total > bestByUser[key].total) {
+        bestByUser[key] = entry;
+      }
+    }
+    /* チームごとに集計 */
+    const teams = {};
+    for (const entry of Object.values(bestByUser)) {
+      const t = entry.team;
+      if (!teams[t]) teams[t] = { team: t, sum: 0, count: 0 };
+      teams[t].sum += entry.total;
+      teams[t].count++;
+    }
+    return Object.values(teams)
+      .filter(t => t.count > 0)
+      .map(t => ({ team: t.team, avg: t.sum / t.count, count: t.count }))
+      .sort((a, b) => b.avg - a.avg);
+  }
+
+  function buildRankingRow(rank, nameText, scoreText) {
+    const row = document.createElement('div');
+    row.className = 'ranking-row';
+    const rankEl = document.createElement('span');
+    rankEl.className = 'ranking-rank';
+    rankEl.textContent = rank;
+    const nameEl = document.createElement('span');
+    nameEl.className = 'ranking-name';
+    nameEl.textContent = nameText;
+    const scoreEl = document.createElement('span');
+    scoreEl.className = 'ranking-score';
+    scoreEl.textContent = scoreText;
+    row.append(rankEl, nameEl, scoreEl);
+    return row;
+  }
+
+  let rankingOrigin = 'waiting-screen';
 
   async function showRanking(origin) {
     rankingOrigin = origin;
-    renderRankingMessage('読み込み中…');
+    renderRankingMessage('読み込み中…', 'ranking-list');
+    renderRankingMessage('読み込み中…', 'team-ranking-list');
     showScreen('ranking-screen');
 
     const list = await loadRankings();
-    const listEl = document.getElementById('ranking-list');
 
     if (list === null) {
-      renderRankingMessage('ランキングの取得に失敗しました');
-      return;
-    }
-    if (list.length === 0) {
-      renderRankingMessage('まだ記録がありません');
+      renderRankingMessage('取得に失敗しました', 'ranking-list');
+      renderRankingMessage('取得に失敗しました', 'team-ranking-list');
       return;
     }
 
-    listEl.innerHTML = '';
-    list.forEach((entry, i) => {
-      const row = document.createElement('div');
-      row.className = 'ranking-row';
+    /* --- 個人ランキング --- */
+    const indivEl = document.getElementById('ranking-list');
+    /* ユーザーごとにベストスコアを選び上位50件 */
+    const bestIndiv = {};
+    for (const entry of list) {
+      const key = entry.id;
+      if (!bestIndiv[key] || entry.total > bestIndiv[key].total) bestIndiv[key] = entry;
+    }
+    const indivList = Object.values(bestIndiv).sort((a, b) => b.total - a.total).slice(0, 50);
 
-      const rank = document.createElement('span');
-      rank.className = 'ranking-rank';
-      rank.textContent = `${i + 1}`;
+    if (indivList.length === 0) {
+      renderRankingMessage('まだ記録がありません', 'ranking-list');
+    } else {
+      indivEl.innerHTML = '';
+      indivList.forEach((entry, i) => {
+        indivEl.appendChild(buildRankingRow(i + 1, entry.name, entry.total.toFixed(1)));
+      });
+    }
 
-      const name = document.createElement('span');
-      name.className = 'ranking-name';
-      name.textContent = entry.name;
+    /* --- チームランキング --- */
+    const teamEl = document.getElementById('team-ranking-list');
+    const teamList = computeTeamRanking(list);
 
-      const total = document.createElement('span');
-      total.className = 'ranking-score';
-      total.textContent = entry.total.toFixed(2);
-
-      row.append(rank, name, total);
-      listEl.appendChild(row);
-    });
+    if (teamList.length === 0) {
+      renderRankingMessage('チームデータなし', 'team-ranking-list');
+    } else {
+      teamEl.innerHTML = '';
+      teamList.forEach((t, i) => {
+        const label = `チーム${t.team} (${t.count}人)`;
+        teamEl.appendChild(buildRankingRow(i + 1, label, t.avg.toFixed(1)));
+      });
+    }
   }
 
   /* ===== USER REGISTRATION ===== */
   const USER_ID_KEY   = 'quiz_user_id';
   const USER_NAME_KEY = 'quiz_user_name';
+  const USER_TEAM_KEY = 'quiz_user_team';
   let currentUserId   = null;
   let currentUserName = '';
+  let currentUserTeam = '';
   let pendingNewId    = null;
+
+  function buildTeamOptions(selectId) {
+    const sel = document.getElementById(selectId);
+    sel.innerHTML = '<option value="">チームを選択（任意）</option>';
+    for (let i = 0; i < 26; i++) {
+      const letter = String.fromCharCode(65 + i);
+      const opt = document.createElement('option');
+      opt.value = letter;
+      opt.textContent = `チーム ${letter}`;
+      sel.appendChild(opt);
+    }
+  }
 
   function genUserId() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 紛らわしい文字(0,O,1,I)を除外
@@ -752,11 +880,16 @@
   }
 
   function initRegister() {
+    buildTeamOptions('reg-new-team');
+    buildTeamOptions('reg-existing-team');
+    buildTeamOptions('reg-recover-team');
+
     const existing = localStorage.getItem(USER_ID_KEY);
     if (existing) {
       currentUserId = existing;
       document.getElementById('reg-existing-id').textContent = existing;
       document.getElementById('reg-existing-name').value = localStorage.getItem(USER_NAME_KEY) || '';
+      document.getElementById('reg-existing-team').value = localStorage.getItem(USER_TEAM_KEY) || '';
       regBlock('reg-existing');
     } else {
       pendingNewId = genUserId();
@@ -785,21 +918,28 @@
     }
   }
 
-  function finishRegistration(id, name) {
+  function finishRegistration(id, name, team) {
     currentUserId   = id;
     currentUserName = name.trim().slice(0, 12) || '名無しさん';
+    currentUserTeam = team || '';
     localStorage.setItem(USER_ID_KEY, currentUserId);
     localStorage.setItem(USER_NAME_KEY, currentUserName);
-    document.getElementById('current-id-display').textContent = `${currentUserName}（ID: ${currentUserId}）`;
+    localStorage.setItem(USER_TEAM_KEY, currentUserTeam);
+    const teamLabel = currentUserTeam ? ` [チーム${currentUserTeam}]` : '';
+    document.getElementById('current-id-display').textContent = `${currentUserName}${teamLabel}（ID: ${currentUserId}）`;
     showScreen('waiting-screen');
     listenSession();
   }
 
   function confirmNewUser() {
-    finishRegistration(pendingNewId, document.getElementById('reg-new-name').value);
+    finishRegistration(pendingNewId,
+      document.getElementById('reg-new-name').value,
+      document.getElementById('reg-new-team').value);
   }
   function continueAsExisting() {
-    finishRegistration(currentUserId, document.getElementById('reg-existing-name').value);
+    finishRegistration(currentUserId,
+      document.getElementById('reg-existing-name').value,
+      document.getElementById('reg-existing-team').value);
   }
 
   function recoverUser() {
@@ -808,7 +948,9 @@
       alert('復旧コードを入力してください。');
       return;
     }
-    finishRegistration(val, document.getElementById('reg-recover-name').value);
+    finishRegistration(val,
+      document.getElementById('reg-recover-name').value,
+      document.getElementById('reg-recover-team').value);
   }
 
   /* ===== HELPERS ===== */
@@ -1092,6 +1234,7 @@
     saveRankingEntry({
       id: currentUserId,
       name: currentUserName,
+      team: currentUserTeam,
       score: myScore,
       elapsedSec: myElapsedSec,
       total: totalScore,

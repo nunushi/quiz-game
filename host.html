@@ -157,34 +157,64 @@
     /* ===== RANKING SCREEN ===== */
     #ranking-screen {
       background: radial-gradient(ellipse at 50% 40%, #1e1e4a 0%, #0d0d1a 65%);
-      gap: 14px;
-      padding: 16px 20px;
+      gap: 10px;
+      padding: 20px 12px 16px;
+      justify-content: flex-start;
+    }
+
+    .ranking-panels {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 680px;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .ranking-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .ranking-panel-title {
+      font-size: 0.78rem;
+      font-weight: bold;
+      color: rgba(255,255,255,0.55);
+      letter-spacing: 0.1em;
+      text-align: center;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+      margin-bottom: 6px;
+      flex-shrink: 0;
     }
 
     .ranking-list {
-      width: 100%;
-      max-width: 340px;
-      max-height: 56vh;
+      flex: 1;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 5px;
+      min-height: 0;
     }
 
     .ranking-row {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 6px;
       background: rgba(255,255,255,0.06);
       border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 12px;
-      padding: 10px 14px;
+      border-radius: 10px;
+      padding: 7px 8px;
     }
     .ranking-rank {
-      width: 26px;
+      width: 20px;
       flex: 0 0 auto;
       font-weight: 900;
-      font-size: 1rem;
+      font-size: 0.85rem;
       text-align: center;
       color: rgba(255,255,255,0.5);
     }
@@ -196,7 +226,7 @@
       flex: 1;
       min-width: 0;
       font-weight: bold;
-      font-size: 0.92rem;
+      font-size: 0.78rem;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -206,14 +236,15 @@
     .ranking-score {
       flex: 0 0 auto;
       font-weight: 900;
-      font-size: 1.05rem;
+      font-size: 0.82rem;
       color: #a78bfa;
     }
 
     .ranking-empty {
       color: rgba(255,255,255,0.4);
-      font-size: 0.95rem;
-      padding: 40px 0;
+      font-size: 0.85rem;
+      padding: 24px 0;
+      text-align: center;
     }
 
     /* ===== GLOBAL ERROR BANNER ===== */
@@ -276,10 +307,19 @@
 
 <!-- ===== RANKING SCREEN ===== -->
 <div id="ranking-screen" class="screen hidden">
-  <div class="game-title" style="font-size:clamp(1.5rem,6vw,2.2rem)">ランキング</div>
-  <div class="ranking-list" id="ranking-list"></div>
-  <button class="btn-primary" onclick="startHostGame()" style="margin-top:8px">もう一度開始する</button>
-  <button class="btn-secondary" onclick="showScreen('start-screen')">開始画面に戻る</button>
+  <div class="game-title" style="font-size:clamp(1.5rem,6vw,2.2rem);margin-bottom:6px">ランキング</div>
+  <div class="ranking-panels">
+    <div class="ranking-panel">
+      <div class="ranking-panel-title">個 人</div>
+      <div class="ranking-list" id="ranking-list"></div>
+    </div>
+    <div class="ranking-panel">
+      <div class="ranking-panel-title">チーム</div>
+      <div class="ranking-list" id="team-ranking-list"></div>
+    </div>
+  </div>
+  <button class="btn-primary" onclick="startHostGame()" style="margin-top:8px;flex-shrink:0">もう一度開始する</button>
+  <button class="btn-secondary" onclick="showScreen('start-screen')" style="flex-shrink:0">開始画面に戻る</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -329,7 +369,7 @@
     try {
       const snap = await db.collection(RANKING_COLLECTION)
         .orderBy('total', 'desc')
-        .limit(50)
+        .limit(200)
         .get();
       return snap.docs.map(doc => doc.data());
     } catch (e) {
@@ -338,8 +378,8 @@
     }
   }
 
-  function renderRankingMessage(text) {
-    const listEl = document.getElementById('ranking-list');
+  function renderRankingMessage(text, listId) {
+    const listEl = document.getElementById(listId);
     listEl.innerHTML = '';
     const msg = document.createElement('div');
     msg.className = 'ranking-empty';
@@ -347,42 +387,86 @@
     listEl.appendChild(msg);
   }
 
+  function computeTeamRanking(entries) {
+    const bestByUser = {};
+    for (const entry of entries) {
+      if (!entry.team) continue;
+      const key = entry.id;
+      if (!bestByUser[key] || entry.total > bestByUser[key].total) bestByUser[key] = entry;
+    }
+    const teams = {};
+    for (const entry of Object.values(bestByUser)) {
+      const t = entry.team;
+      if (!teams[t]) teams[t] = { team: t, sum: 0, count: 0 };
+      teams[t].sum += entry.total;
+      teams[t].count++;
+    }
+    return Object.values(teams)
+      .filter(t => t.count > 0)
+      .map(t => ({ team: t.team, avg: t.sum / t.count, count: t.count }))
+      .sort((a, b) => b.avg - a.avg);
+  }
+
+  function buildRankingRow(rank, nameText, scoreText) {
+    const row = document.createElement('div');
+    row.className = 'ranking-row';
+    const rankEl = document.createElement('span');
+    rankEl.className = 'ranking-rank';
+    rankEl.textContent = rank;
+    const nameEl = document.createElement('span');
+    nameEl.className = 'ranking-name';
+    nameEl.textContent = nameText;
+    const scoreEl = document.createElement('span');
+    scoreEl.className = 'ranking-score';
+    scoreEl.textContent = scoreText;
+    row.append(rankEl, nameEl, scoreEl);
+    return row;
+  }
+
   async function showHostRanking() {
     showScreen('ranking-screen');
-    renderRankingMessage('読み込み中…');
+    renderRankingMessage('読み込み中…', 'ranking-list');
+    renderRankingMessage('読み込み中…', 'team-ranking-list');
 
     const list = await loadRankings();
-    const listEl = document.getElementById('ranking-list');
 
     if (list === null) {
-      renderRankingMessage('ランキングの取得に失敗しました');
-      return;
-    }
-    if (list.length === 0) {
-      renderRankingMessage('まだ記録がありません');
+      renderRankingMessage('取得に失敗しました', 'ranking-list');
+      renderRankingMessage('取得に失敗しました', 'team-ranking-list');
       return;
     }
 
-    listEl.innerHTML = '';
-    list.forEach((entry, i) => {
-      const row = document.createElement('div');
-      row.className = 'ranking-row';
+    /* --- 個人ランキング --- */
+    const indivEl = document.getElementById('ranking-list');
+    const bestIndiv = {};
+    for (const entry of list) {
+      const key = entry.id;
+      if (!bestIndiv[key] || entry.total > bestIndiv[key].total) bestIndiv[key] = entry;
+    }
+    const indivList = Object.values(bestIndiv).sort((a, b) => b.total - a.total).slice(0, 50);
 
-      const rank = document.createElement('span');
-      rank.className = 'ranking-rank';
-      rank.textContent = `${i + 1}`;
+    if (indivList.length === 0) {
+      renderRankingMessage('まだ記録がありません', 'ranking-list');
+    } else {
+      indivEl.innerHTML = '';
+      indivList.forEach((entry, i) => {
+        indivEl.appendChild(buildRankingRow(i + 1, entry.name, entry.total.toFixed(1)));
+      });
+    }
 
-      const name = document.createElement('span');
-      name.className = 'ranking-name';
-      name.textContent = entry.name;
+    /* --- チームランキング --- */
+    const teamEl = document.getElementById('team-ranking-list');
+    const teamList = computeTeamRanking(list);
 
-      const total = document.createElement('span');
-      total.className = 'ranking-score';
-      total.textContent = entry.total.toFixed(2);
-
-      row.append(rank, name, total);
-      listEl.appendChild(row);
-    });
+    if (teamList.length === 0) {
+      renderRankingMessage('チームデータなし', 'team-ranking-list');
+    } else {
+      teamEl.innerHTML = '';
+      teamList.forEach((t, i) => {
+        const label = `チーム${t.team} (${t.count}人)`;
+        teamEl.appendChild(buildRankingRow(i + 1, label, t.avg.toFixed(1)));
+      });
+    }
   }
 
   /* ===== HELPERS ===== */
