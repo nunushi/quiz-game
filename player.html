@@ -733,7 +733,19 @@
         .orderBy('total', 'desc')
         .limit(200)
         .get();
-      return snap.docs.map(doc => doc.data());
+      return snap.docs.map(doc => {
+        const d = doc.data();
+        return {
+          docId: doc.id,
+          id:    d.id    !== undefined ? d.id    : doc.id,
+          name:  d.name  !== undefined ? d.name  : '',
+          team:  d.team  !== undefined ? d.team  : '',
+          total: typeof d.total === 'number' ? d.total : 0,
+          score: d.score,
+          elapsedSec: d.elapsedSec,
+          date:  d.date
+        };
+      });
     } catch (e) {
       console.error('ランキングの取得に失敗しました', e);
       return null;
@@ -745,6 +757,7 @@
       await db.collection(RANKING_COLLECTION).add(entry);
     } catch (e) {
       console.error('ランキングの送信に失敗しました', e);
+      showGlobalError('スコアの保存に失敗しました。通信状況を確認してください。');
     }
   }
 
@@ -818,7 +831,7 @@
     /* ユーザーごとにベストスコアを選び上位50件 */
     const bestIndiv = {};
     for (const entry of list) {
-      const key = entry.id;
+      const key = entry.id || entry.docId;
       if (!bestIndiv[key] || entry.total > bestIndiv[key].total) bestIndiv[key] = entry;
     }
     const indivList = Object.values(bestIndiv).sort((a, b) => b.total - a.total).slice(0, 50);
@@ -828,7 +841,8 @@
     } else {
       indivEl.innerHTML = '';
       indivList.forEach((entry, i) => {
-        indivEl.appendChild(buildRankingRow(i + 1, entry.name, entry.total.toFixed(1)));
+        const displayName = (entry.name || '名無しさん') + (entry.team ? ` [${entry.team}]` : '');
+        indivEl.appendChild(buildRankingRow(i + 1, displayName, entry.total.toFixed(1)));
       });
     }
 
@@ -837,11 +851,11 @@
     const teamList = computeTeamRanking(list);
 
     if (teamList.length === 0) {
-      renderRankingMessage('チームデータなし', 'team-ranking-list');
+      renderRankingMessage('チーム未設定', 'team-ranking-list');
     } else {
       teamEl.innerHTML = '';
       teamList.forEach((t, i) => {
-        const label = `チーム${t.team} (${t.count}人)`;
+        const label = `チーム${t.team}(${t.count}人)`;
         teamEl.appendChild(buildRankingRow(i + 1, label, t.avg.toFixed(1)));
       });
     }
@@ -1231,15 +1245,16 @@
     document.getElementById('result-time').textContent = `解答時間合計: ${myElapsedSec.toFixed(2)} 秒`;
     document.getElementById('result-total').textContent = totalScore.toFixed(2);
 
-    saveRankingEntry({
+    const rankingEntry = {
       id: currentUserId,
-      name: currentUserName,
-      team: currentUserTeam,
+      name: currentUserName || '名無しさん',
       score: myScore,
       elapsedSec: myElapsedSec,
       total: totalScore,
       date: Date.now()
-    });
+    };
+    if (currentUserTeam) rankingEntry.team = currentUserTeam;
+    saveRankingEntry(rankingEntry);
   }
 
   /* ===== INIT ===== */
